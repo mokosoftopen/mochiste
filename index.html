@@ -230,13 +230,13 @@ input[type="range"]::-webkit-slider-thumb {
 
     <div class="control-row" id="sizeRow">
       <label>サイズ</label>
-      <input type="range" id="sizeSlider" min="30" max="140" value="72">
+      <input type="range" id="sizeSlider" min="20" max="220" value="72">
       <span class="size-value" id="sizeValue">72</span>
     </div>
 
     <div class="control-row">
       <label>縦幅</label>
-      <input type="range" id="heightSlider" min="400" max="1400" value="1100">
+      <input type="range" id="heightSlider" min="300" max="2000" value="1100">
       <span class="size-value" id="heightValue">1100</span>
     </div>
 
@@ -301,7 +301,7 @@ function calcAutoSize(text) {
   const areaW = BUBBLE.w - pad * 2;
   const areaH = state.areaH - pad * 2;
 
-  for (let size = 140; size >= 30; size -= 2) {
+  for (let size = 220; size >= 20; size -= 2) {
     const charH = size * 1.35;
     const colW = size * 1.5;
     const maxPerCol = Math.max(1, Math.floor(areaH / charH));
@@ -313,7 +313,7 @@ function calcAutoSize(text) {
     }
     if (totalCols * colW <= areaW) return size;
   }
-  return 30;
+  return 20;
 }
 
 function render() {
@@ -374,12 +374,14 @@ function drawVerticalText() {
   const totalW = columns.length * colW;
   const startX = area.x + area.w / 2 + totalW / 2 - colW / 2;
 
+  let maxColLen = 0;
+  for (const col of columns) { if (col.length > maxColLen) maxColLen = col.length; }
+  const baseY = area.y + (area.h - maxColLen * charH) / 2 + charH / 2;
+
   for (let c = 0; c < columns.length; c++) {
     const col = columns[c];
     if (col.length === 0) continue;
     const x = startX - c * colW;
-    const totalH = col.length * charH;
-    const baseY = area.y + (area.h - totalH) / 2 + charH / 2;
 
     for (let r = 0; r < col.length; r++) {
       const y = baseY + r * charH;
