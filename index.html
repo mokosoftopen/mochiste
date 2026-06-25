@@ -6,7 +6,7 @@
 <title>もちステ - 吹き出しメーカー</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Kosugi+Maru&family=M+PLUS+Rounded+1c:wght@400;700&family=Noto+Sans+JP:wght@400;700&family=Noto+Serif+JP:wght@400;700&family=Shippori+Mincho:wght@400;700&family=Yuji+Syuku&family=Zen+Maru+Gothic:wght@400;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Kosugi+Maru&family=M+PLUS+Rounded+1c:wght@400;700&family=Noto+Sans+JP:wght@400;700&family=Noto+Serif+JP:wght@400;700&family=Shippori+Mincho:wght@400;700&family=Yuji+Syuku&family=Zen+Maru+Gothic:wght@400;700&family=Zen+Antique&family=Yuji+Boku&family=Kaisei+Tokumin:wght@400;700&display=swap" rel="stylesheet">
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -155,6 +155,8 @@ input[type="range"]::-webkit-slider-thumb {
   border-color: #1a1a1a;
 }
 
+.control-row.disabled { opacity: 0.4; pointer-events: none; }
+
 .position-controls {
   display: none;
   flex-direction: column;
@@ -220,16 +222,20 @@ input[type="range"]::-webkit-slider-thumb {
         <option value="Shippori Mincho">しっぽり明朝</option>
         <option value="Kosugi Maru">小杉丸ゴシック</option>
         <option value="Yuji Syuku">游築見出し明朝</option>
+        <option value="Zen Antique">Zen Antique（怪談風）</option>
+        <option value="Yuji Boku">游築36ポ仮名（毛筆風）</option>
+        <option value="Kaisei Tokumin">解星デコール（レトロ）</option>
       </select>
     </div>
 
-    <div class="control-row">
+    <div class="control-row" id="sizeRow">
       <label>サイズ</label>
       <input type="range" id="sizeSlider" min="30" max="140" value="72">
       <span class="size-value" id="sizeValue">72</span>
     </div>
 
     <div class="toggle-row">
+      <button class="toggle-btn active" id="autoToggle">自動サイズ</button>
       <button class="toggle-btn" id="boldToggle">太字</button>
       <button class="toggle-btn" id="posToggle">位置調整 ▼</button>
     </div>
@@ -253,7 +259,7 @@ input[type="range"]::-webkit-slider-thumb {
 
 <script>
 const BUBBLE = { x: 400, y: 100, w: 1200, h: 1100 };
-const COPYRIGHT_H = 60;
+const COPYRIGHT_H = 100;
 
 const ROTATE_CHARS = new Set('ーｰ〜～…‥—–―─＝（）()｛｝{}〔〕[]【】「」『』≪≫＜＞<>｢｣');
 const SMALL_KANA = new Set('ぁぃぅぇぉっゃゅょゎァィゥェォッャュョヮ');
@@ -267,6 +273,7 @@ const state = {
   font: 'Noto Sans JP',
   size: 72,
   bold: false,
+  autoFit: true,
   ox: 0,
   oy: 0
 };
@@ -281,9 +288,35 @@ img.onload = async () => {
 };
 img.src = 'mochihaka.png';
 
-function render() {
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
+function calcAutoSize(text) {
+  if (!text.trim()) return 72;
+  const pad = 60;
+  const areaW = BUBBLE.w - pad * 2;
+  const areaH = BUBBLE.h - pad * 2;
 
+  for (let size = 140; size >= 30; size -= 2) {
+    const charH = size * 1.35;
+    const colW = size * 1.5;
+    const maxPerCol = Math.max(1, Math.floor(areaH / charH));
+    const paragraphs = text.split('\n');
+    let totalCols = 0;
+    for (const para of paragraphs) {
+      if (para.length === 0) { totalCols += 1; continue; }
+      totalCols += Math.ceil([...para].length / maxPerCol);
+    }
+    if (totalCols * colW <= areaW) return size;
+  }
+  return 30;
+}
+
+function render() {
+  if (state.autoFit && state.text.trim()) {
+    state.size = calcAutoSize(state.text);
+    sizeSlider.value = state.size;
+    sizeValue.textContent = state.size;
+  }
+
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
   ctx.fillStyle = '#ffffff';
   ctx.fillRect(0, 0, canvas.width, canvas.height);
   ctx.drawImage(img, 0, 0);
@@ -322,8 +355,10 @@ function drawVerticalText() {
       continue;
     }
     const chars = [...para];
-    for (let i = 0; i < chars.length; i += maxPerCol) {
-      columns.push(chars.slice(i, i + maxPerCol));
+    const numCols = Math.ceil(chars.length / maxPerCol);
+    const perCol = Math.ceil(chars.length / numCols);
+    for (let i = 0; i < chars.length; i += perCol) {
+      columns.push(chars.slice(i, i + perCol));
     }
   }
 
@@ -364,11 +399,11 @@ function drawChar(ctx, ch, x, y, size) {
 
 function drawCopyright() {
   const y = img.height + COPYRIGHT_H / 2;
-  ctx.font = '24px "Noto Sans JP", sans-serif';
-  ctx.fillStyle = '#888888';
+  ctx.font = '40px "Noto Sans JP", sans-serif';
+  ctx.fillStyle = '#666666';
   ctx.textAlign = 'right';
   ctx.textBaseline = 'middle';
-  ctx.fillText('©墓場文庫', img.width - 24, y);
+  ctx.fillText('©墓場文庫', img.width - 30, y);
 }
 
 // --- controls ---
@@ -377,12 +412,16 @@ const textInput = document.getElementById('textInput');
 const fontSelect = document.getElementById('fontSelect');
 const sizeSlider = document.getElementById('sizeSlider');
 const sizeValue = document.getElementById('sizeValue');
+const sizeRow = document.getElementById('sizeRow');
+const autoToggle = document.getElementById('autoToggle');
 const boldToggle = document.getElementById('boldToggle');
 const posToggle = document.getElementById('posToggle');
 const posControls = document.getElementById('posControls');
 const offsetX = document.getElementById('offsetX');
 const offsetY = document.getElementById('offsetY');
 const downloadBtn = document.getElementById('downloadBtn');
+
+sizeRow.classList.add('disabled');
 
 let composing = false;
 textInput.addEventListener('compositionstart', () => { composing = true; });
@@ -401,6 +440,13 @@ textInput.addEventListener('input', () => {
 fontSelect.addEventListener('change', async () => {
   state.font = fontSelect.value;
   try { await document.fonts.load(`${state.size}px "${state.font}"`); } catch {}
+  render();
+});
+
+autoToggle.addEventListener('click', () => {
+  state.autoFit = !state.autoFit;
+  autoToggle.classList.toggle('active', state.autoFit);
+  sizeRow.classList.toggle('disabled', state.autoFit);
   render();
 });
 
