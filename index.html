@@ -234,6 +234,12 @@ input[type="range"]::-webkit-slider-thumb {
       <span class="size-value" id="sizeValue">72</span>
     </div>
 
+    <div class="control-row">
+      <label>縦幅</label>
+      <input type="range" id="heightSlider" min="400" max="1400" value="1100">
+      <span class="size-value" id="heightValue">1100</span>
+    </div>
+
     <div class="toggle-row">
       <button class="toggle-btn active" id="autoToggle">自動サイズ</button>
       <button class="toggle-btn" id="boldToggle">太字</button>
@@ -258,7 +264,7 @@ input[type="range"]::-webkit-slider-thumb {
 <div class="loading-overlay" id="loading">読み込み中…</div>
 
 <script>
-const BUBBLE = { x: 400, y: 100, w: 1200, h: 1100 };
+const BUBBLE = { x: 280, y: 100, w: 1200, h: 1100 };
 const COPYRIGHT_H = 100;
 
 const ROTATE_CHARS = new Set('ーｰ〜～…‥—–―─＝（）()｛｝{}〔〕[]【】「」『』≪≫＜＞<>｢｣');
@@ -274,6 +280,7 @@ const state = {
   size: 72,
   bold: false,
   autoFit: true,
+  areaH: 1100,
   ox: 0,
   oy: 0
 };
@@ -292,7 +299,7 @@ function calcAutoSize(text) {
   if (!text.trim()) return 72;
   const pad = 60;
   const areaW = BUBBLE.w - pad * 2;
-  const areaH = BUBBLE.h - pad * 2;
+  const areaH = state.areaH - pad * 2;
 
   for (let size = 140; size >= 30; size -= 2) {
     const charH = size * 1.35;
@@ -342,7 +349,7 @@ function drawVerticalText() {
     x: BUBBLE.x + state.ox,
     y: BUBBLE.y + state.oy,
     w: BUBBLE.w,
-    h: BUBBLE.h
+    h: state.areaH
   };
 
   const maxPerCol = Math.max(1, Math.floor(area.h / charH));
@@ -399,7 +406,7 @@ function drawChar(ctx, ch, x, y, size) {
 
 function drawCopyright() {
   const y = img.height + COPYRIGHT_H / 2;
-  ctx.font = '40px "Noto Sans JP", sans-serif';
+  ctx.font = '56px "Noto Sans JP", sans-serif';
   ctx.fillStyle = '#666666';
   ctx.textAlign = 'right';
   ctx.textBaseline = 'middle';
@@ -419,6 +426,8 @@ const posToggle = document.getElementById('posToggle');
 const posControls = document.getElementById('posControls');
 const offsetX = document.getElementById('offsetX');
 const offsetY = document.getElementById('offsetY');
+const heightSlider = document.getElementById('heightSlider');
+const heightValue = document.getElementById('heightValue');
 const downloadBtn = document.getElementById('downloadBtn');
 
 sizeRow.classList.add('disabled');
@@ -453,6 +462,12 @@ autoToggle.addEventListener('click', () => {
 sizeSlider.addEventListener('input', () => {
   state.size = Number(sizeSlider.value);
   sizeValue.textContent = state.size;
+  render();
+});
+
+heightSlider.addEventListener('input', () => {
+  state.areaH = Number(heightSlider.value);
+  heightValue.textContent = state.areaH;
   render();
 });
 
